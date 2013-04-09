@@ -1,0 +1,78 @@
+<!doctype html>
+<head>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.js"></script>
+<script src="{{ url_for('static', filename='flot/jquery.flot.js') }}"></script>
+
+</head>
+<body>
+
+<script>
+    window.jQuery || document.write(
+    '<script src="{{ url_for('static', filename='jquery.js') }}">\x3C/script>')
+</script>
+
+<script type=text/javascript>
+    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+
+<table class="options">
+<tr>
+    <td>
+        <select class="options" id="target" style="width:100%">
+        <option selected disabled value="null">Select Metric</option>
+        {% for metric in session['metrics'] %}
+            <option>{{ metric }}</option>
+        {% endfor %}
+        </select>
+    </td>
+
+    <td>
+        <select class="options" id="timesum">
+            <option selected value="60">1 Min</option>
+            <option value="3600">1 Hour</option>
+            <option value="86400">1 Day</option>
+            <option value="604800">1 Week</option>
+        </select>
+    </td>
+</tr>
+<tr>
+    <td>
+        <span id="from">From
+        <input type="number" class="from" id="num" value="-1" max="-1"
+            style="width:50px;"/>
+        <select class="from" id="unit">
+            <option value="min">Minutes</option>
+            <option value="h">Hours</option>
+            <option selected value="d">Days</option>
+            <option value="w">Weeks</option>
+            <option value="month">Months</option>
+        </select>
+        </span>
+
+        <span id="unti">Until
+            <input type="number" class="until" id="num" value="0" max="0"
+                size="4" style="width:50px;"/>
+            <select class="until" id="unit">
+                <option value="min">Minutes</option>
+                <option value="h">Hours</option>
+                <option selected value="d">Days</option>
+                <option value="w">Weeks</option>
+                <option value="month">Months</option>
+            </select>
+        </span>
+    </td>
+
+    <td>
+        <span id="all">
+            <input type="checkbox">For All</input>
+        </span>
+    </td>
+</tr>
+</table>
+
+
+<div id="graph" style="width:640px;height:480px;"></div>
+
+<script src="{{ url_for('static', filename='options.js') }}"></script>
+
+</body>
