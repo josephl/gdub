@@ -41,54 +41,49 @@ def index():
 @app.route('/data', methods=['GET'])
 @support_jsonp
 def data():
-    """Request metric data."""
-    params = request.values.to_dict()
-    if params.has_key('summarization'):
-        summarization = int(params.pop('summarization'))
-    else:
-        summarization = g.graph.step
-    updateGraph(params)
-    # BUG if timespan > 58hours, JSON req error. ?
-    if summarization > g.graph.step:
-        table = g.graph.timeTable(
-            g.graph.summarize(summarization))
-    elif summarization == g.graph.step:
-        logger.info('step == summary')
-        table = g.graph.timeTable(
-            g.graph.summarize(summarization))
-    else:
-        logger.info('step >= summary')
-        table = g.graph.timeTable()
-    logger.info('table length: %d' %(len(table)))
-    try:
-        jsonData = jsonify(results=table)
-    except:
-        logger.error('data request jsonification')
-    return jsonData
+    #params = request.values.to_dict()
+    params = parseRequest()
+    host = app.config['GRAPHITE_HOST']
+    sslcert = app.config['SSL_CERT']
+
+    if not host.endswith('/render'):
+        host = host.rstrip('/') + '/render'
+
+    logger.info(host)
+    logger.info(params)
+
+    graphiteDataframe = graphyte.request(host, sslcert, **params)
+    dataset, stats = graphyte.plotData(graphiteDataframe, 'ffill', True)
+
+    return jsonify(results=dataset, stats=stats)
 
 @app.route('/metrics', methods=['GET'])
 @support_jsonp
 def metrics():
     params = request.values.to_dict()
     
-
-@app.route('/graphite/<path:metricPath>', methods=['GET'])
-@support_jsonp
-def graphite(metricPath):
-    metricName = metricPath.rstrip('/').replace('/', '.')
-    wc = WhisperCtl()
-    metrics = wc.findall(metricName)
-    if len(metrics) > 0:
-        g.metrics = metrics
-        return render_template('index.html')
-    return str(metrics)
-
 @app.route('/menu', methods=['GET'])
 @support_jsonp
 def menu():
     """Obtain metric names from Graphite"""
     graphiteIndex = whisperctl.index()
     return jsonify(graphiteIndex.dictify())
+
+@app.route('/gwb', methods=['GET'])
+@support_jsonp
+def gwb():
+    params = request.values.to_dict()
+    import pdb; pdb.set_trace()
+    graphiteData = graphyte.request(params)
+    return jsonify({ 'results': graphiteData })
+
+def parseRequest():
+    params = request.values.to_dict()
+    if 'target[]' in params:
+        params.pop('target[]')
+        params.update({ 'target': request.values.getlist('target[]') })
+    return params
+
 
 def updateGraph(params):
     if hasattr(g, 'graph') and g.graph is not None:
