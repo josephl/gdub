@@ -2,7 +2,7 @@ from flask import Flask, request, session, jsonify, render_template, g, \
     redirect, current_app
 import whisperctl
 import graphyte
-import metrics
+#import metrics
 import logging
 from sys import argv
 import json
@@ -32,11 +32,11 @@ def getParams():
         d.update({ key: val })
     return d
 
-@app.route('/graphite/', methods=['GET'])
-@support_jsonp
-def index():
-    g.update({ 'metrics': metrics.metrics() })
-    return render_template('index.html')
+#@app.route('/graphite/', methods=['GET'])
+#@support_jsonp
+#def index():
+#    g.update({ 'metrics': metrics.metrics() })
+#    return render_template('index.html')
 
 @app.route('/data', methods=['GET'])
 @support_jsonp
@@ -69,13 +69,13 @@ def menu():
     graphiteIndex = whisperctl.index()
     return jsonify(graphiteIndex.dictify())
 
-@app.route('/gwb', methods=['GET'])
-@support_jsonp
-def gwb():
-    params = request.values.to_dict()
-    import pdb; pdb.set_trace()
-    graphiteData = graphyte.request(params)
-    return jsonify({ 'results': graphiteData })
+#@app.route('/gwb', methods=['GET'])
+#@support_jsonp
+#def gwb():
+#    params = request.values.to_dict()
+#    import pdb; pdb.set_trace()
+#    graphiteData = graphyte.request(params)
+#    return jsonify({ 'results': graphiteData })
 
 def parseRequest():
     params = request.values.to_dict()

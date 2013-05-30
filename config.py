@@ -5,3 +5,7 @@ DEFAULT_OPTIONS = {
 }
 GRAPHITE_HOST = 'https://graphite.dev.awbdev.org'
 SSL_CERT = '/opt/graphite/idealist.pem'
+
+# Google Analytics default configs
+TOKEN_FILE_NAME = '/opt/graphite/analytics.dat'
+CLIENT_SECRETS = '/opt/graphite/client_secrets.json'
