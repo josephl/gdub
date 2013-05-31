@@ -1,7 +1,9 @@
 from flask import Flask, request, session, jsonify, render_template, g, \
     redirect, current_app
+from ssl import SSLError
 import whisperctl
 import graphyte
+import graphalytics
 import logging
 from sys import argv
 import json
@@ -39,9 +41,33 @@ def data():
     logger.info(host)
     logger.info(params)
 
-    graphiteDataframe = graphyte.request(host, sslcert, **params)
-    dataset, stats = graphyte.plotData(graphiteDataframe, 'ffill', True)
+    # if analytics metrics exist, resampleFreq must be set
+    if (len(filter(lambda x: x.startswith('ga:'), params.get('target'))) > 0
+            and 'resampleFreq' not in params):
+        params.update({ 'resampleFreq': 'H' })
 
+    graphiteParams = {}
+    graphiteParams.update(params)
+    graphiteParams.update({ 'target': filter(
+            lambda x: not x.startswith('ga:'), params.get('target')) })
+    graphiteDataframe = None
+    if graphiteParams.get('target'):
+        graphiteDataframe = graphyte.request(host, sslcert, **graphiteParams)
+
+    # Assumes there MUST be a graphite metric for analytics metrics
+    analyticsParams = analyticsOptions(params, graphiteDataframe.index)
+    analyticsDataframe = None
+    if analyticsParams is not None:
+        if graphiteDataframe is not None:
+            try:
+                analyticsData = graphalytics.request(**analyticsParams)
+                analyticsDataframe = graphyte.getDataframe(analyticsData)
+            except SSLError as se:
+                print 'SSL error: %s' % se
+            graphiteDataframe = graphyte.mergeAnalytics(graphiteDataframe,
+                                                        analyticsDataframe)
+
+    dataset, stats = graphyte.plotData(graphiteDataframe, 'ffill', True)
     return jsonify(results=dataset, stats=stats)
 
 @app.route('/menu', methods=['GET'])
@@ -58,19 +84,43 @@ def parseRequest():
         params.update({ 'target': request.values.getlist('target[]') })
     return params
 
+def analyticsOptions(params, graphiteIndex=None):
+    if graphiteIndex is not None:
+        start = graphiteIndex[0].to_datetime().strftime('%s')
+        end = graphiteIndex[-1].to_datetime().strftime('%s')
+    else:
+        start = None
+        end = None
+    metrics = filter(lambda x: x.startswith('ga:'), params.get('target'))
+    if len(metrics) == 0:
+        return None
+    query = {
+            'metrics': metrics,
+            'dimensions' : ['ga:date',]
+            }
+    if 'resampleFreq' not in params or params.get('resampleFreq') != 'D':
+        query['dimensions'] += ['ga:hour', ]
 
-def updateGraph(params):
-    if hasattr(g, 'graph') and g.graph is not None:
-        if not g.graph.has_key('target'):
-            g.graph = None
-        elif g.graph['target'] != params['target']:
-            g.graph = None
-        else:
-            # same metric, update instead of new request
-            logger.info('same metric')
-    # fresh request
-    setattr(g, 'graph', graphyte.request(params))
+    if 'from' in params and int(params.get('from')) != 0:
+        query.update({'start_date': params.get('from')})
+    elif graphiteIndex is not None:
+        query.update({ 'start_date': start })
 
+    if 'until' in params is not None:
+        query.update({ 'end_date': params.get('until') })
+    elif graphiteIndex is not None:
+        query.update({ 'end_date': end })
+        
+    ga_options = {
+        'webProperty': app.config['GA_WEB_PROPERTY'],
+        'profile': app.config['GA_PROFILE'],
+        'config': [
+            app.config['GA_TOKEN_FILE_NAME'],
+            app.config['GA_CLIENT_SECRETS']
+            ],
+        'query': query
+        }
+    return ga_options
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')

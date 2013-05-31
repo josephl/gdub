@@ -7,5 +7,7 @@ GRAPHITE_HOST = 'https://graphite.dev.awbdev.org'
 SSL_CERT = '/opt/graphite/idealist.pem'
 
 # Google Analytics default configs
-TOKEN_FILE_NAME = '/opt/graphite/analytics.dat'
-CLIENT_SECRETS = '/opt/graphite/client_secrets.json'
+GA_TOKEN_FILE_NAME = '/opt/graphite/analytics.dat'
+GA_CLIENT_SECRETS = '/opt/graphite/client_secrets.json'
+GA_WEB_PROPERTY = {'name': 'http://idealist.org'}
+GA_PROFILE = {'name': 'i3: English w/o filter'}
