@@ -55,7 +55,7 @@ def data():
         graphiteDataframe = graphyte.request(host, sslcert, **graphiteParams)
 
     # Assumes there MUST be a graphite metric for analytics metrics
-    analyticsParams = analyticsOptions(params, graphiteDataframe.index)
+    analyticsParams = analyticsOptions(params, graphiteDataframe)
     analyticsDataframe = None
     if analyticsParams is not None:
         if graphiteDataframe is not None:
@@ -84,10 +84,13 @@ def parseRequest():
         params.update({ 'target': request.values.getlist('target[]') })
     return params
 
-def analyticsOptions(params, graphiteIndex=None):
-    if graphiteIndex is not None:
-        start = graphiteIndex[0].to_datetime().strftime('%s')
-        end = graphiteIndex[-1].to_datetime().strftime('%s')
+def analyticsOptions(params, graphiteDF=None):
+    if graphiteDF is not None:
+        graphiteIndex = graphiteDF.index
+        filteredIndex = graphiteDF.dropna().index
+        #import pdb; pdb.set_trace()
+        start = filteredIndex[0].to_datetime().strftime('%s')
+        end = filteredIndex[-1].to_datetime().strftime('%s')
     else:
         start = None
         end = None
