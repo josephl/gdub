@@ -85,12 +85,15 @@ def parseRequest():
     return params
 
 def analyticsOptions(params, graphiteDF=None):
-    if graphiteDF is not None:
+    if graphiteDF is not None and len(graphiteDF.dropna()) > 0:
         graphiteIndex = graphiteDF.index
         filteredIndex = graphiteDF.dropna().index
         #import pdb; pdb.set_trace()
-        start = filteredIndex[0].to_datetime().strftime('%s')
-        end = filteredIndex[-1].to_datetime().strftime('%s')
+        try:
+            start = filteredIndex[0].to_datetime().strftime('%s')
+            end = filteredIndex[-1].to_datetime().strftime('%s')
+        except IndexError as ie:
+            import pdb; pdb.set_trace()
     else:
         start = None
         end = None
